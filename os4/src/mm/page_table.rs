@@ -1,6 +1,6 @@
 //! Implementation of [`PageTableEntry`] and [`PageTable`].
 
-use super::{frame_alloc, FrameTracker, PhysPageNum, StepByOne, VirtAddr, VirtPageNum};
+use super::{frame_alloc, FrameTracker, PhysPageNum, StepByOne, VirtAddr, VirtPageNum, PhysAddr};
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
@@ -128,6 +128,16 @@ impl PageTable {
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).copied()
     }
+
+    pub fn translate_from_va_to_pa(&self, va: VirtAddr) -> Option<PhysAddr> {
+        let vpn = va.clone().floor();
+        let pte: PageTableEntry = self.translate(vpn.clone())?;
+        let offset:usize = va.page_offset();
+        let pa:PhysAddr = pte.ppn().into();
+        let pa:usize = pa.into();
+        Some(PhysAddr::from(pa + offset))
+    }
+
     pub fn token(&self) -> usize {
         8usize << 60 | self.root_ppn.0
     }
@@ -154,4 +164,14 @@ pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&
         start = end_va.into();
     }
     v
+}
+
+/// translate a generic pointer to a mutable reference through page table
+pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
+    let page_table = PageTable::from_token(token);
+    let va: usize= ptr as usize;
+    page_table
+    .translate_from_va_to_pa(VirtAddr::from(va))
+    .unwrap()
+    .get_mut()
 }
