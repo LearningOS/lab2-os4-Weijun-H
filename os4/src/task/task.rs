@@ -3,6 +3,7 @@ use super::TaskContext;
 use crate::config::{kernel_stack_position, TRAP_CONTEXT};
 use crate::mm::{MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
 use crate::trap::{trap_handler, TrapContext};
+use crate::config::MAX_SYSCALL_NUM;
 
 /// task control block structure
 pub struct TaskControlBlock {
@@ -11,6 +12,9 @@ pub struct TaskControlBlock {
     pub memory_set: MemorySet,
     pub trap_cx_ppn: PhysPageNum,
     pub base_size: usize,
+
+    pub syscall_times: [u32; MAX_SYSCALL_NUM],
+    pub start_time: usize,
 }
 
 impl TaskControlBlock {
@@ -41,6 +45,8 @@ impl TaskControlBlock {
             memory_set,
             trap_cx_ppn,
             base_size: user_sp,
+            syscall_times: [0; MAX_SYSCALL_NUM],
+            start_time: 0,
         };
         // prepare TrapContext in user space
         let trap_cx = task_control_block.get_trap_cx();
@@ -58,7 +64,38 @@ impl TaskControlBlock {
 #[derive(Copy, Clone, PartialEq)]
 /// task status: UnInit, Ready, Running, Exited
 pub enum TaskStatus {
+    UnInit,
     Ready,
     Running,
     Exited,
+}
+
+#[derive(Clone, Copy)]
+pub struct TaskInfo {
+    pub status: TaskStatus,
+    pub syscall_times: [u32; MAX_SYSCALL_NUM],
+    pub time: usize,
+}
+
+impl TaskInfo {
+    pub fn new() -> Self {
+        TaskInfo {
+            status: TaskStatus::UnInit,
+            syscall_times: [0; MAX_SYSCALL_NUM],
+            time: 0,
+        }
+    }
+
+    pub fn set_status(&mut self, status: TaskStatus) {
+        self.status = status;
+    }
+
+    pub fn set_syscall_times(&mut self, time: [u32; MAX_SYSCALL_NUM]) {
+        self.syscall_times = time;
+    }
+
+    pub fn set_time (&mut self, val: usize) {
+        self.time = val;
+    }
+
 }
