@@ -47,7 +47,9 @@ impl MemorySet {
     pub fn token(&self) -> usize {
         self.page_table.token()
     }
-
+    pub fn munmap(&mut self, vpn: VirtPageNum) {
+        self.areas[0].unmap_one(&mut self.page_table, vpn);
+    }
     pub fn find_vpn(&self, vpn: VirtPageNum) -> bool {
         let pte = self.translate(vpn);
         match pte {

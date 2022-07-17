@@ -49,7 +49,7 @@ pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
 }
 
 pub fn sys_munmap(_start: usize, _len: usize) -> isize {
-    -1
+    munmap(_start, _len)
 }
 
 // YOUR JOB: 引入虚地址后重写 sys_task_info

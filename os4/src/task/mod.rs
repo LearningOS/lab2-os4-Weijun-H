@@ -219,7 +219,7 @@ impl TaskManager {
 
         // check if the mapping is successful
         for vpn in vpn_range {
-            if inner.tasks[current].memory_set.find_vpn(vpn) == false{
+            if !inner.tasks[current].memory_set.find_vpn(vpn){
                 return -1;
             }
         }
@@ -228,6 +228,40 @@ impl TaskManager {
 
 
     fn munmap(&self, start: usize, len: usize) -> isize {
+        if start % PAGE_SIZE != 0 {
+            return -1;
+        }
+
+        // check if the vritual is aligned to PAGE_SIZE
+        let mut length = (len / PAGE_SIZE) * PAGE_SIZE;
+        if len % PAGE_SIZE != 0 {
+            length += PAGE_SIZE;
+        }
+
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        let vpn_start = VirtPageNum::from(start / PAGE_SIZE);
+        let vpn_end = VirtPageNum::from((start + length) / PAGE_SIZE);
+        let vpn_range = VPNRange::new(vpn_start, vpn_end);
+
+        // check if the required page is mapped, if not, return false
+        for vpn in vpn_range {
+            if !(inner.tasks[current].memory_set.find_vpn(vpn)) {
+                return -1;
+            }
+        }
+
+        // start to unmap the required pages
+        for vpn in vpn_range {
+            inner.tasks[current].memory_set.munmap(vpn);
+        }
+
+        // check if the unmapping is successful
+        for vpn in vpn_range {
+            if true == inner.tasks[current].memory_set.find_vpn(vpn) {
+                return -1;
+            }
+        }
         0
     }
 
