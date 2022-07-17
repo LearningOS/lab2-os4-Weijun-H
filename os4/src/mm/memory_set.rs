@@ -1,6 +1,6 @@
 //! Implementation of [`MapArea`] and [`MemorySet`].
 
-use super::{frame_alloc, FrameTracker};
+use super::{frame_alloc, FrameTracker, page_table};
 use super::{PTEFlags, PageTable, PageTableEntry};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 use super::{StepByOne, VPNRange};
@@ -48,7 +48,7 @@ impl MemorySet {
         self.page_table.token()
     }
     pub fn munmap(&mut self, vpn: VirtPageNum) {
-        self.areas[0].unmap_one(&mut self.page_table, vpn);
+        self.page_table.unmap(vpn);
     }
     pub fn find_vpn(&self, vpn: VirtPageNum) -> bool {
         let pte = self.translate(vpn);

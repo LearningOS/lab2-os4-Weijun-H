@@ -258,7 +258,7 @@ impl TaskManager {
 
         // check if the unmapping is successful
         for vpn in vpn_range {
-            if true == inner.tasks[current].memory_set.find_vpn(vpn) {
+            if inner.tasks[current].memory_set.find_vpn(vpn) {
                 return -1;
             }
         }
