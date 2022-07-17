@@ -1,7 +1,7 @@
 //! Process management syscalls
 
 use crate::config::MAX_SYSCALL_NUM;
-use crate::task::{exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, current_user_token};
+use crate::task::{exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, current_user_token, mmap, munmap};
 use crate::timer::get_time_us;
 use crate::mm::translated_refmut;
 use crate::task::{get_current_task_info, TaskInfo};
@@ -45,7 +45,7 @@ pub fn sys_set_priority(_prio: isize) -> isize {
 
 // YOUR JOB: 扩展内核以实现 sys_mmap 和 sys_munmap
 pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
-    -1
+    mmap(_start, _len, _port)
 }
 
 pub fn sys_munmap(_start: usize, _len: usize) -> isize {

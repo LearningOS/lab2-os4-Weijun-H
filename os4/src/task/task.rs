@@ -80,7 +80,7 @@ pub struct TaskInfo {
 impl TaskInfo {
     pub fn new() -> Self {
         TaskInfo {
-            status: TaskStatus::UnInit,
+            status: TaskStatus::Ready,
             syscall_times: [0; MAX_SYSCALL_NUM],
             time: 0,
         }

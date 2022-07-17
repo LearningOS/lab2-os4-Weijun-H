@@ -26,6 +26,10 @@ pub use context::TaskContext;
 
 use crate::timer::get_time_us;
 
+use crate::config::PAGE_SIZE;
+
+use crate::mm::{VirtAddr, VirtPageNum, MapPermission, VPNRange};
+
 /// The task manager, where all the tasks are managed.
 ///
 /// Functions implemented on `TaskManager` deals with all task state transitions
@@ -177,6 +181,56 @@ impl TaskManager {
         }
         0
     }
+
+    fn mmap(&self, start: usize, len: usize, port: usize) -> isize {
+        if start % PAGE_SIZE != 0
+            || port & !0x7 != 0
+            || port & 0x7 == 0 {
+            return -1;
+        }
+
+        // check if the vritual is aligned to PAGE_SIZE
+        let mut length = (len / PAGE_SIZE) * PAGE_SIZE;
+        if len % PAGE_SIZE != 0 {
+            length += PAGE_SIZE;
+        }
+
+        // check if the required page is mapped, if so, return false
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        let vpn_start = VirtPageNum::from(start / PAGE_SIZE);
+        let vpn_end = VirtPageNum::from((start + length) / PAGE_SIZE);
+        let vpn_range = VPNRange::new(vpn_start, vpn_end);
+        for vpn in vpn_range {
+            if inner.tasks[current].memory_set.find_vpn(vpn) {
+                return -1;
+            }
+        }
+
+        // change port to mappermission
+        let permission = MapPermission::from_port(port);
+
+        // map the required pages
+        inner.tasks[current].memory_set.insert_framed_area(
+            VirtAddr::from(start),
+            VirtAddr::from(start + length),
+            permission
+        );
+
+        // check if the mapping is successful
+        for vpn in vpn_range {
+            if inner.tasks[current].memory_set.find_vpn(vpn) == false{
+                return -1;
+            }
+        }
+        0
+    }
+
+
+    fn munmap(&self, start: usize, len: usize) -> isize {
+        0
+    }
+
 }
 
 /// Run the first task in task list.
@@ -228,4 +282,14 @@ pub fn update_task_info(syscall_id: usize) {
 
 pub fn get_current_task_info(ti: *mut TaskInfo) -> isize {
     TASK_MANAGER.get_current_task_info(ti)
+}
+
+/// map
+pub fn mmap(start: usize, len: usize, prot: usize) -> isize {
+    TASK_MANAGER.mmap(start, len, prot)
+}
+
+/// unmap
+pub fn munmap(start: usize, len: usize) -> isize {
+    TASK_MANAGER.munmap(start, len)
 }

@@ -47,6 +47,22 @@ impl MemorySet {
     pub fn token(&self) -> usize {
         self.page_table.token()
     }
+
+    pub fn find_vpn(&self, vpn: VirtPageNum) -> bool {
+        let pte = self.translate(vpn);
+        match pte {
+            Some(x) => {
+                if x.is_valid() {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            None => return false,
+        }
+
+    }
+
     /// Assume that no conflicts.
     pub fn insert_framed_area(
         &mut self,
@@ -318,6 +334,21 @@ bitflags! {
         const W = 1 << 2;
         const X = 1 << 3;
         const U = 1 << 4;
+    }
+}
+
+impl From<u8> for MapPermission {
+    fn from(v: u8) -> Self {
+        Self::from_bits_truncate(v)
+    }
+}
+
+impl MapPermission {
+    pub fn from_port(port: usize) -> Self {
+        let mut port_u8: u8 = port as u8;
+        port_u8 = port_u8 << 1;
+        port_u8 = port_u8 | MapPermission::U.bits();
+        port_u8.into()
     }
 }
 
